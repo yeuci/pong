@@ -1,9 +1,22 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
 
 #define WIDTH 640
 #define HEIGHT 480
 #define BALL_SIZE 10
+
+
+typedef struct Ball {
+  float x;
+  float y;
+  float x_speed;
+  float y_speed;
+  int size;
+} Ball;
+
+Ball ball;
 
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
@@ -29,8 +42,18 @@ void cleanup(void) {
   SDL_Quit();
 }
 
-bool initialize() {
+Ball create_ball(int size) {
+  const float SPEED = 120;
+  Ball ball = {
+    .x = (WIDTH / 2) - (size / 2),
+    .y = (HEIGHT / 2) - (size / 2),
+    .size = size
+  };
 
+  return ball;
+}
+
+bool initialize() {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     fprintf(stderr, "failed to initialize SDL: %s\n", SDL_GetError());
     return false;
@@ -50,20 +73,53 @@ bool initialize() {
     return false;
   }
 
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   if (!renderer) {
     fprintf(stderr, "failed to create renderer: %s\n", SDL_GetError());
     return false;
   }
 
+  ball = create_ball(BALL_SIZE);
+
   return true;
 }
 
-void update(float elapsed) {
+bool coin_flip(void) {
+  return rand() % 2 == 1 ? true : false;
+}
 
+void render_ball(const Ball* ball) {
+  int size = ball->size;
+  int half_size = size / 2;
+  SDL_Rect ball_rect = {
+    .x = ball->x - half_size,
+    .y = ball->y - half_size,
+    .w = size,
+    .h = size
+  };
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+  SDL_RenderFillRect(renderer, &ball_rect);
+}
+
+
+void update(float elapsed) {
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+
+  //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+  //SDL_Rect ball_rect = {
+  //  .x = (WIDTH / 2) - (BALL_SIZE / 2),
+  //  .y = (HEIGHT / 2) - (BALL_SIZE / 2),
+  //  .w = BALL_SIZE,
+  //  .h = BALL_SIZE,
+  //};
+  //SDL_RenderFillRect(renderer, &ball_rect);
+  render_ball(&ball);
+  SDL_RenderPresent(renderer);
 }
 
 int main(int argc, const char** argv) {
+  srand((unsigned int)time(NULL));
   atexit(cleanup);
 
   bool is_running = true;
@@ -71,24 +127,19 @@ int main(int argc, const char** argv) {
   if (!initialize())
     exit(1);
 
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-  SDL_RenderClear(renderer);
-
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_Rect ball_rect = {
-    .x = (WIDTH / 2) - (BALL_SIZE / 2),
-    .y = (HEIGHT / 2) - (BALL_SIZE / 2),
-    .w = BALL_SIZE,
-    .h = BALL_SIZE,
-  };
-  SDL_RenderFillRect(renderer, &ball_rect);
-
-  SDL_RenderPresent(renderer);
-
   SDL_Event event;
+
+  uint32_t last_tick = SDL_GetTicks();
 
   while (is_running) {
     recieve_input(&event, &is_running);
+
+    uint32_t current_tick = SDL_GetTicks();
+    uint32_t diff = current_tick - last_tick;
+    float elapsed = diff / 1000.0f;
+
+    update(elapsed);
+    last_tick = current_tick;
   }
 
   cleanup();
