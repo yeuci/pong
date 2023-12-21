@@ -5,6 +5,9 @@
 #define HEIGHT 480
 #define BALL_SIZE 10
 
+SDL_Window *window = NULL;
+SDL_Renderer *renderer = NULL;
+
 void recieve_input(SDL_Event* event, bool* is_running) {
     SDL_PollEvent(event);
     switch ((*event).type) {
@@ -12,29 +15,28 @@ void recieve_input(SDL_Event* event, bool* is_running) {
         *is_running = false;
         break;
       case SDL_KEYDOWN:
-        if ((*event).key.keysym.sym == SDLK_ESCAPE) {
+        if ((*event).key.keysym.sym == SDLK_ESCAPE)
           *is_running = false;
-        }
         break;
       default:
         break;
     }
 }
 
-void cleanup(SDL_Window* window) {
-  SDL_DestroyWindow(window);
+void cleanup(void) {
+  if (window) SDL_DestroyWindow(window);
+  if (renderer) SDL_DestroyRenderer(renderer);
   SDL_Quit();
 }
 
-int main(int argc, const char** argv) {
+bool initialize() {
+
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     fprintf(stderr, "failed to initialize SDL: %s\n", SDL_GetError());
-    exit(1);
+    return false;
   }
 
-  bool is_running = true;
-
-  SDL_Window *window = SDL_CreateWindow(
+  window = SDL_CreateWindow(
     "Pong",
     SDL_WINDOWPOS_UNDEFINED,
     SDL_WINDOWPOS_UNDEFINED,
@@ -45,11 +47,29 @@ int main(int argc, const char** argv) {
 
   if (!window) {
     fprintf(stderr, "failed to create window: %s\n", SDL_GetError());
-    SDL_Quit();
-    exit(1);
+    return false;
   }
 
-  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  if (!renderer) {
+    fprintf(stderr, "failed to create renderer: %s\n", SDL_GetError());
+    return false;
+  }
+
+  return true;
+}
+
+void update(float elapsed) {
+
+}
+
+int main(int argc, const char** argv) {
+  atexit(cleanup);
+
+  bool is_running = true;
+
+  if (!initialize())
+    exit(1);
 
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
@@ -71,7 +91,7 @@ int main(int argc, const char** argv) {
     recieve_input(&event, &is_running);
   }
 
-  cleanup(window);
+  cleanup();
 
   return 0;
 }

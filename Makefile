@@ -8,4 +8,4 @@ clean:
 	rm pong
 
 dev:
-	make clean && make build && make run
+	make build && make run
