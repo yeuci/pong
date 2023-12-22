@@ -94,16 +94,16 @@ void update_ball(Ball* ball, float elapsed) {
   ball->x += ball->x_speed * elapsed;
   ball->y += ball->y_speed * elapsed;
 
-  if (ball->x < 0) {
+  if (ball->x < BALL_SIZE / 2) {
     ball->x_speed = fabs(ball->x_speed);
   }
-  if (ball->x > WIDTH - BALL_SIZE) {
+  if (ball->x > WIDTH - BALL_SIZE / 2) {
     ball->x_speed = -(fabs(ball->x_speed));
   }
-  if (ball->y < 0) {
+  if (ball->y < BALL_SIZE / 2) {
     ball->y_speed = fabs(ball->y_speed);
   }
-  if (ball->y > HEIGHT - BALL_SIZE) {
+  if (ball->y > HEIGHT - (BALL_SIZE / 2)) {
     ball->y_speed = -(fabs(ball->y_speed));
   }
 }
