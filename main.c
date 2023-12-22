@@ -9,7 +9,7 @@
 #define PLAYER_WIDTH 20
 #define PLAYER_HEIGHT 75
 #define PLAYER_MARGIN 10
-#define PLAYER_MOVE_SPEED 150.0f
+#define PLAYER_MOVE_SPEED 200.0f
 
 typedef struct Ball {
   float x;
@@ -70,6 +70,7 @@ Player create_player(void) {
 
 Ball create_ball(int size) {
   const float SPEED = 120;
+
   Ball ball = {
     .x = (WIDTH / 2) - (size / 2),
     .y = (HEIGHT / 2) - (size / 2),
@@ -115,6 +116,7 @@ bool initialize() {
 }
 
 void update_ai(float elapsed) {
+  if (!in_play) return;
   if (player_2.y_position != ball.y) {
     if (ball.y > player_2.y_position)
       player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
@@ -130,65 +132,68 @@ void update_players(float elapsed) {
     in_play = true;
   }
 
-  if (keyboard_state[SDL_SCANCODE_W]) {
-    player_1.y_position -= PLAYER_MOVE_SPEED * elapsed;
+  if (in_play) {
+    if (keyboard_state[SDL_SCANCODE_W]) {
+      player_1.y_position -= PLAYER_MOVE_SPEED * elapsed;
+    }
+    if (keyboard_state[SDL_SCANCODE_S]) {
+      player_1.y_position += PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if (keyboard_state[SDL_SCANCODE_UP]) {
+      player_2.y_position -= PLAYER_MOVE_SPEED * elapsed;
+    }
+    if (keyboard_state[SDL_SCANCODE_DOWN]) {
+      player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
+    }
+
+    if (player_1.y_position < PLAYER_HEIGHT / 2) {
+      player_1.y_position = PLAYER_HEIGHT / 2;
+    }
+
+    if (player_1.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
+      player_1.y_position = HEIGHT - PLAYER_HEIGHT / 2;
+    }
+
+    if (player_2.y_position < PLAYER_HEIGHT / 2) {
+      player_2.y_position = PLAYER_HEIGHT / 2;
+    }
+
+    if (player_2.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
+      player_2.y_position = HEIGHT - PLAYER_HEIGHT / 2;
+    }
+
+    SDL_Rect ball_rect = {
+      .x = ball.x - (ball.size / 2),
+      .y = ball.y - (ball.size / 2),
+      .w = ball.size,
+      .h = ball.size,
+    };
+
+    SDL_Rect player_1_rect = {
+      .x = PLAYER_MARGIN,
+      .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
+      .w = PLAYER_WIDTH,
+      .h = PLAYER_HEIGHT,
+    };
+
+    if (SDL_HasIntersection(&ball_rect, &player_1_rect)) {
+      ball.x_speed = fabs(ball.x_speed);
+      ball.x_speed += 60;
+    }
+
+    SDL_Rect player_2_rect = {
+      .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+      .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
+      .w = PLAYER_WIDTH,
+      .h = PLAYER_HEIGHT,
+    };
+
+    if (SDL_HasIntersection(&ball_rect, &player_2_rect)) {
+      ball.x_speed = -(fabs(ball.x_speed));
+      ball.x_speed -= 60;
+    }
   }
-  if (keyboard_state[SDL_SCANCODE_S]) {
-    player_1.y_position += PLAYER_MOVE_SPEED * elapsed;
-  }
-
-  if (keyboard_state[SDL_SCANCODE_UP]) {
-    player_2.y_position -= PLAYER_MOVE_SPEED * elapsed;
-  }
-  if (keyboard_state[SDL_SCANCODE_DOWN]) {
-    player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
-  }
-
-  if (player_1.y_position < PLAYER_HEIGHT / 2) {
-    player_1.y_position = PLAYER_HEIGHT / 2;
-  }
-
-  if (player_1.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
-    player_1.y_position = HEIGHT - PLAYER_HEIGHT / 2;
-  }
-
-  if (player_2.y_position < PLAYER_HEIGHT / 2) {
-    player_2.y_position = PLAYER_HEIGHT / 2;
-  }
-
-  if (player_2.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
-    player_2.y_position = HEIGHT - PLAYER_HEIGHT / 2;
-  }
-
-  SDL_Rect ball_rect = {
-    .x = ball.x - (ball.size / 2),
-    .y = ball.y - (ball.size / 2),
-    .w = ball.size,
-    .h = ball.size,
-  };
-
-  SDL_Rect player_1_rect = {
-    .x = PLAYER_MARGIN,
-    .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
-    .w = PLAYER_WIDTH,
-    .h = PLAYER_HEIGHT,
-  };
-
-  if (SDL_HasIntersection(&ball_rect, &player_1_rect)) {
-    ball.x_speed = fabs(ball.x_speed);
-  }
-
-  SDL_Rect player_2_rect = {
-    .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
-    .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
-    .w = PLAYER_WIDTH,
-    .h = PLAYER_HEIGHT,
-  };
-
-  if (SDL_HasIntersection(&ball_rect, &player_2_rect)) {
-    ball.x_speed = -(fabs(ball.x_speed));
-  }
-
 }
 
 void render_players(void) {
@@ -211,6 +216,21 @@ void render_players(void) {
   SDL_RenderFillRect(renderer, &player_2_rect);
 }
 
+void reset_game(int size) {
+  const float SPEED = 120;
+
+  ball.x = (WIDTH / 2) - (size / 2);
+  ball.y = (HEIGHT / 2) - (size / 2);
+  ball.size = size;
+  ball.x_speed = SPEED * (coin_flip() ? 1 : -1);
+  ball.y_speed = SPEED * (coin_flip() ? 1 : -1);
+
+  player_1.y_position = HEIGHT / 2;
+  player_2.y_position = HEIGHT / 2;
+
+  in_play = false;
+}
+
 void update_ball(Ball* ball, float elapsed) {
   if (!in_play) {
     return;
@@ -221,9 +241,11 @@ void update_ball(Ball* ball, float elapsed) {
 
   if (ball->x < BALL_SIZE / 2) {
     ball->x_speed = fabs(ball->x_speed);
+    reset_game(BALL_SIZE);
   }
   if (ball->x > WIDTH - BALL_SIZE / 2) {
     ball->x_speed = -(fabs(ball->x_speed));
+    reset_game(BALL_SIZE);
   }
   if (ball->y < BALL_SIZE / 2) {
     ball->y_speed = fabs(ball->y_speed);
