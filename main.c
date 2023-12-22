@@ -114,12 +114,73 @@ bool initialize() {
   return true;
 }
 
+
 void update_players(float elapsed) {
   const uint8_t* keyboard_state = SDL_GetKeyboardState(NULL);
 
   if (keyboard_state[SDL_SCANCODE_SPACE]) {
     in_play = true;
   }
+
+  if (keyboard_state[SDL_SCANCODE_W]) {
+    player_1.y_position -= PLAYER_MOVE_SPEED * elapsed;
+  }
+  if (keyboard_state[SDL_SCANCODE_S]) {
+    player_1.y_position += PLAYER_MOVE_SPEED * elapsed;
+  }
+
+  if (keyboard_state[SDL_SCANCODE_UP]) {
+    player_2.y_position -= PLAYER_MOVE_SPEED * elapsed;
+  }
+  if (keyboard_state[SDL_SCANCODE_DOWN]) {
+    player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
+  }
+
+  if (player_1.y_position < PLAYER_HEIGHT / 2) {
+    player_1.y_position = PLAYER_HEIGHT / 2;
+  }
+
+  if (player_1.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
+    player_1.y_position = HEIGHT - PLAYER_HEIGHT / 2;
+  }
+
+  if (player_2.y_position < PLAYER_HEIGHT / 2) {
+    player_2.y_position = PLAYER_HEIGHT / 2;
+  }
+
+  if (player_2.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
+    player_2.y_position = HEIGHT - PLAYER_HEIGHT / 2;
+  }
+
+  SDL_Rect ball_rect = {
+    .x = ball.x - (ball.size / 2),
+    .y = ball.y - (ball.size / 2),
+    .w = ball.size,
+    .h = ball.size,
+  };
+
+  SDL_Rect player_1_rect = {
+    .x = PLAYER_MARGIN,
+    .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
+    .w = PLAYER_WIDTH,
+    .h = PLAYER_HEIGHT,
+  };
+
+  if (SDL_HasIntersection(&ball_rect, &player_1_rect)) {
+    ball.x_speed = fabs(ball.x_speed);
+  }
+
+  SDL_Rect player_2_rect = {
+    .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+    .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
+    .w = PLAYER_WIDTH,
+    .h = PLAYER_HEIGHT,
+  };
+
+  if (SDL_HasIntersection(&ball_rect, &player_2_rect)) {
+    ball.x_speed = -(fabs(ball.x_speed));
+  }
+
 }
 
 void render_players(void) {
