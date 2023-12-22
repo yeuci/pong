@@ -21,6 +21,10 @@ Ball ball;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 
+bool coin_flip(void) {
+  return rand() % 2 == 1 ? true : false;
+}
+
 void recieve_input(SDL_Event* event, bool* is_running) {
     SDL_PollEvent(event);
     switch ((*event).type) {
@@ -47,7 +51,9 @@ Ball create_ball(int size) {
   Ball ball = {
     .x = (WIDTH / 2) - (size / 2),
     .y = (HEIGHT / 2) - (size / 2),
-    .size = size
+    .size = size,
+    .x_speed = SPEED * (coin_flip() ? 1 : -1),
+    .y_speed = SPEED * (coin_flip() ? 1 : -1)
   };
 
   return ball;
@@ -84,8 +90,22 @@ bool initialize() {
   return true;
 }
 
-bool coin_flip(void) {
-  return rand() % 2 == 1 ? true : false;
+void update_ball(Ball* ball, float elapsed) {
+  ball->x += ball->x_speed * elapsed;
+  ball->y += ball->y_speed * elapsed;
+
+  if (ball->x < 0) {
+    ball->x_speed = fabs(ball->x_speed);
+  }
+  if (ball->x > WIDTH - BALL_SIZE) {
+    ball->x_speed = -(fabs(ball->x_speed));
+  }
+  if (ball->y < 0) {
+    ball->y_speed = fabs(ball->y_speed);
+  }
+  if (ball->y > HEIGHT - BALL_SIZE) {
+    ball->y_speed = -(fabs(ball->y_speed));
+  }
 }
 
 void render_ball(const Ball* ball) {
@@ -106,15 +126,9 @@ void update(float elapsed) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
 
-  //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  //SDL_Rect ball_rect = {
-  //  .x = (WIDTH / 2) - (BALL_SIZE / 2),
-  //  .y = (HEIGHT / 2) - (BALL_SIZE / 2),
-  //  .w = BALL_SIZE,
-  //  .h = BALL_SIZE,
-  //};
-  //SDL_RenderFillRect(renderer, &ball_rect);
+  update_ball(&ball, elapsed);
   render_ball(&ball);
+
   SDL_RenderPresent(renderer);
 }
 
