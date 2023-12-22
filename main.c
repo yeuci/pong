@@ -6,7 +6,10 @@
 #define WIDTH 640
 #define HEIGHT 480
 #define BALL_SIZE 10
-
+#define PLAYER_WIDTH 20
+#define PLAYER_HEIGHT 75
+#define PLAYER_MARGIN 10
+#define PLAYER_MOVE_SPEED 150.0f
 
 typedef struct Ball {
   float x;
@@ -16,27 +19,38 @@ typedef struct Ball {
   int size;
 } Ball;
 
+typedef struct Player {
+  int score;
+  float y_position;
+} Player;
+
 Ball ball;
+
+Player player_1;
+Player player_2;
 
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
+
+bool in_play = false;
 
 bool coin_flip(void) {
   return rand() % 2 == 1 ? true : false;
 }
 
 void recieve_input(SDL_Event* event, bool* is_running) {
-    SDL_PollEvent(event);
-    switch ((*event).type) {
-      case SDL_QUIT:
-        *is_running = false;
-        break;
-      case SDL_KEYDOWN:
-        if ((*event).key.keysym.sym == SDLK_ESCAPE)
-          *is_running = false;
-        break;
-      default:
-        break;
+    while (SDL_PollEvent(event)) {
+      switch ((*event).type) {
+        case SDL_QUIT:
+         *is_running = false;
+         break;
+        case SDL_KEYDOWN:
+         if ((*event).key.keysym.sym == SDLK_ESCAPE)
+           *is_running = false;
+         break;
+        default:
+          break;
+      }
     }
 }
 
@@ -44,6 +58,14 @@ void cleanup(void) {
   if (window) SDL_DestroyWindow(window);
   if (renderer) SDL_DestroyRenderer(renderer);
   SDL_Quit();
+}
+
+Player create_player(void) {
+  Player player = {
+    .y_position = HEIGHT / 2,
+  };
+
+  return player;
 }
 
 Ball create_ball(int size) {
@@ -86,11 +108,45 @@ bool initialize() {
   }
 
   ball = create_ball(BALL_SIZE);
+  player_1 = create_player();
+  player_2 = create_player();
 
   return true;
 }
 
+void update_players(float elapsed) {
+  const uint8_t* keyboard_state = SDL_GetKeyboardState(NULL);
+
+  if (keyboard_state[SDL_SCANCODE_SPACE]) {
+    in_play = true;
+  }
+}
+
+void render_players(void) {
+  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+  SDL_Rect player_1_rect = {
+    .x = PLAYER_MARGIN,
+    .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
+    .w = PLAYER_WIDTH,
+    .h = PLAYER_HEIGHT,
+  };
+  SDL_RenderFillRect(renderer, &player_1_rect);
+
+  SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+  SDL_Rect player_2_rect = {
+    .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+    .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
+    .w = PLAYER_WIDTH,
+    .h = PLAYER_HEIGHT,
+  };
+  SDL_RenderFillRect(renderer, &player_2_rect);
+}
+
 void update_ball(Ball* ball, float elapsed) {
+  if (!in_play) {
+    return;
+  }
+
   ball->x += ball->x_speed * elapsed;
   ball->y += ball->y_speed * elapsed;
 
@@ -121,13 +177,15 @@ void render_ball(const Ball* ball) {
   SDL_RenderFillRect(renderer, &ball_rect);
 }
 
-
 void update(float elapsed) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
 
   update_ball(&ball, elapsed);
   render_ball(&ball);
+
+  update_players(elapsed);
+  render_players();
 
   SDL_RenderPresent(renderer);
 }
