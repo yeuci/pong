@@ -114,6 +114,14 @@ bool initialize() {
   return true;
 }
 
+void update_ai(float elapsed) {
+  if (player_2.y_position != ball.y) {
+    if (ball.y > player_2.y_position)
+      player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
+    else if (ball.y < player_2.y_position)
+      player_2.y_position -= PLAYER_MOVE_SPEED * elapsed;
+  }
+}
 
 void update_players(float elapsed) {
   const uint8_t* keyboard_state = SDL_GetKeyboardState(NULL);
@@ -247,6 +255,8 @@ void update(float elapsed) {
 
   update_players(elapsed);
   render_players();
+
+  update_ai(elapsed);
 
   SDL_RenderPresent(renderer);
 }
