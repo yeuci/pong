@@ -1,5 +1,5 @@
 build:
-	gcc -Wall -std=c99 -lSDL2 -o pong ./*.c
+	gcc -Wall -std=c99 -lSDL2 -lSDL2_ttf -o pong ./*.c
 
 run:
 	./pong

@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
@@ -32,7 +33,16 @@ Player player_2;
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 
+SDL_Surface *text_surface = NULL;
+SDL_Texture *text_texture = NULL;
+SDL_Surface *players_text_surface = NULL;
+SDL_Texture *players_text_texture = NULL;
+TTF_Font *font = NULL;
+
 bool in_play = false;
+
+unsigned int player_1_score = 0;
+unsigned int player_2_score = 0;
 
 bool coin_flip(void) {
   return rand() % 2 == 1 ? true : false;
@@ -108,6 +118,39 @@ bool initialize() {
     return false;
   }
 
+  TTF_Init();
+
+  font = TTF_OpenFont("./assets/PressStart2P-Regular.ttf", 25);
+  if (font == NULL) {
+    printf("font loading failed: %s\n", TTF_GetError());
+    return false;
+  }
+
+  text_surface = TTF_RenderText_Blended_Wrapped(
+    font,
+    "Pong",
+    (SDL_Color){255, 255, 255, 255},
+    500
+  );
+  players_text_surface = TTF_RenderText_Blended_Wrapped(
+    font,
+    "0 - 0",
+    (SDL_Color){255, 255, 255, 255},
+    500
+  );
+
+  if (text_surface == NULL || players_text_surface == NULL) {
+    printf("surface creation failed: %s\n", TTF_GetError());
+    return false;
+  }
+
+  text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+  players_text_texture = SDL_CreateTextureFromSurface(renderer, players_text_surface);
+  if (text_surface == NULL || players_text_surface == NULL) {
+    printf("texture creation failed: %s\n", TTF_GetError());
+    return false;
+  }
+
   ball = create_ball(BALL_SIZE);
   player_1 = create_player();
   player_2 = create_player();
@@ -115,14 +158,37 @@ bool initialize() {
   return true;
 }
 
+
+void update_text() {
+  char buf[50];
+  snprintf(buf, sizeof(buf), "%d - %d", player_1_score, player_2_score);
+
+  SDL_Surface *u_players_text_surface = TTF_RenderText_Blended_Wrapped(
+    font,
+    buf,
+    (SDL_Color){255, 255, 255, 255},
+    500
+  );
+  SDL_Texture *u_players_text_texture = SDL_CreateTextureFromSurface(renderer, u_players_text_surface);
+
+  SDL_Surface *last_players_text_surface = players_text_surface;
+  SDL_Texture *last_players_text_texture = players_text_texture;
+
+  players_text_surface = u_players_text_surface;
+  players_text_texture = u_players_text_texture;
+
+  //free(last_players_text_surface);
+  //free(last_players_text_texture);
+  SDL_FreeSurface(last_players_text_surface);
+  SDL_DestroyTexture(last_players_text_texture);
+}
+
 void update_ai(float elapsed) {
   if (!in_play) return;
-  if (player_2.y_position != ball.y) {
-    if (ball.y > player_2.y_position)
+  if (ball.y > player_2.y_position)
       player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
-    else if (ball.y < player_2.y_position)
+  if (ball.y < player_2.y_position)
       player_2.y_position -= PLAYER_MOVE_SPEED * elapsed;
-  }
 }
 
 void update_players(float elapsed) {
@@ -242,10 +308,14 @@ void update_ball(Ball* ball, float elapsed) {
   if (ball->x < BALL_SIZE / 2) {
     ball->x_speed = fabs(ball->x_speed);
     reset_game(BALL_SIZE);
+    player_2_score++;
+    update_text();
   }
   if (ball->x > WIDTH - BALL_SIZE / 2) {
     ball->x_speed = -(fabs(ball->x_speed));
     reset_game(BALL_SIZE);
+    player_1_score++;
+    update_text();
   }
   if (ball->y < BALL_SIZE / 2) {
     ball->y_speed = fabs(ball->y_speed);
@@ -268,9 +338,35 @@ void render_ball(const Ball* ball) {
   SDL_RenderFillRect(renderer, &ball_rect);
 }
 
+
+void render_text() {
+  SDL_RenderCopy(renderer,
+    text_texture,
+    NULL,
+   &(SDL_Rect){
+       (WIDTH / 2) - ((text_surface->w) / 2),
+       PLAYER_MARGIN,
+       text_surface->w,
+       text_surface->h
+   });
+
+  SDL_RenderCopy(renderer,
+    players_text_texture,
+    NULL,
+   &(SDL_Rect){
+       (WIDTH / 2) - ((text_surface->w) / 2),
+       (PLAYER_MARGIN * 2) + text_surface->h,
+       text_surface->w,
+       text_surface->h
+   });
+
+}
+
 void update(float elapsed) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
+
+  render_text();
 
   update_ball(&ball, elapsed);
   render_ball(&ball);
