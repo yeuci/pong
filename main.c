@@ -10,7 +10,7 @@
 #define PLAYER_WIDTH 20
 #define PLAYER_HEIGHT 75
 #define PLAYER_MARGIN 10
-#define PLAYER_MOVE_SPEED 200.0f
+#define PLAYER_MOVE_SPEED 225.0f
 
 typedef struct Ball {
   float x;
@@ -37,12 +37,17 @@ SDL_Surface *text_surface = NULL;
 SDL_Texture *text_texture = NULL;
 SDL_Surface *players_text_surface = NULL;
 SDL_Texture *players_text_texture = NULL;
+
 TTF_Font *font = NULL;
 
 bool in_play = false;
 
 unsigned int player_1_score = 0;
 unsigned int player_2_score = 0;
+
+SDL_Rect ball_rect;
+SDL_Rect player_1_rect;
+SDL_Rect player_2_rect;
 
 bool coin_flip(void) {
   return rand() % 2 == 1 ? true : false;
@@ -177,8 +182,6 @@ void update_text() {
   players_text_surface = u_players_text_surface;
   players_text_texture = u_players_text_texture;
 
-  //free(last_players_text_surface);
-  //free(last_players_text_texture);
   SDL_FreeSurface(last_players_text_surface);
   SDL_DestroyTexture(last_players_text_texture);
 }
@@ -213,6 +216,37 @@ void update_players(float elapsed) {
       player_2.y_position += PLAYER_MOVE_SPEED * elapsed;
     }
 
+    ball_rect = (SDL_Rect){
+      .x = ball.x - (ball.size / 2),
+      .y = ball.y - (ball.size / 2),
+      .w = ball.size,
+      .h = ball.size,
+    };
+
+    player_1_rect = (SDL_Rect){
+      .x = PLAYER_MARGIN,
+      .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
+      .w = PLAYER_WIDTH,
+      .h = PLAYER_HEIGHT,
+    };
+
+    player_2_rect = (SDL_Rect){
+      .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
+      .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
+      .w = PLAYER_WIDTH,
+      .h = PLAYER_HEIGHT,
+    };
+
+    if (SDL_HasIntersection(&ball_rect, &player_1_rect)) {
+      ball.x_speed = fabs(ball.x_speed);
+      ball.x_speed += (ball.x_speed * elapsed);
+    }
+
+    if (SDL_HasIntersection(&ball_rect, &player_2_rect)) {
+      ball.x_speed = -(fabs(ball.x_speed));
+      ball.x_speed -= (ball.x_speed * elapsed);
+    }
+
     if (player_1.y_position < PLAYER_HEIGHT / 2) {
       player_1.y_position = PLAYER_HEIGHT / 2;
     }
@@ -227,37 +261,6 @@ void update_players(float elapsed) {
 
     if (player_2.y_position > HEIGHT - PLAYER_HEIGHT / 2) {
       player_2.y_position = HEIGHT - PLAYER_HEIGHT / 2;
-    }
-
-    SDL_Rect ball_rect = {
-      .x = ball.x - (ball.size / 2),
-      .y = ball.y - (ball.size / 2),
-      .w = ball.size,
-      .h = ball.size,
-    };
-
-    SDL_Rect player_1_rect = {
-      .x = PLAYER_MARGIN,
-      .y = (int)(player_1.y_position) - (PLAYER_HEIGHT / 2),
-      .w = PLAYER_WIDTH,
-      .h = PLAYER_HEIGHT,
-    };
-
-    if (SDL_HasIntersection(&ball_rect, &player_1_rect)) {
-      ball.x_speed = fabs(ball.x_speed);
-      ball.x_speed += 60;
-    }
-
-    SDL_Rect player_2_rect = {
-      .x = WIDTH - PLAYER_WIDTH - PLAYER_MARGIN,
-      .y = (int)(player_2.y_position) - (PLAYER_HEIGHT / 2),
-      .w = PLAYER_WIDTH,
-      .h = PLAYER_HEIGHT,
-    };
-
-    if (SDL_HasIntersection(&ball_rect, &player_2_rect)) {
-      ball.x_speed = -(fabs(ball.x_speed));
-      ball.x_speed -= 60;
     }
   }
 }
